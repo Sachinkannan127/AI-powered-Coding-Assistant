@@ -1,0 +1,389 @@
+"""
+Smart DevCopilot - AI-Powered Coding Assistant Backend
+FastAPI server with AI integration for code generation, debugging, and security analysis
+"""
+
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
+from fastapi import FastAPI, WebSocket, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, EmailStr
+from typing import List, Optional, Dict, Any
+from sqlalchemy.orm import Session
+import asyncio
+import json
+from datetime import datetime
+
+from ai_engine import CodeGenerator, DebugAnalyzer, SecurityScanner
+from database import SessionLocal, get_db, User
+from models import CodeSnippet, UserPreference
+from vector_search import VectorStore
+from auth import (
+    create_access_token, 
+    get_password_hash, 
+    verify_password, 
+    get_current_user,
+    optional_auth
+)
+
+app = FastAPI(
+    title="Smart DevCopilot API",
+    description="AI-Powered Coding Assistant Backend",
+    version="1.0.0"
+)
+
+# CORS middleware for IDE integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize AI components
+code_generator = CodeGenerator()
+debug_analyzer = DebugAnalyzer()
+security_scanner = SecurityScanner()
+vector_store = VectorStore()
+
+
+# Pydantic models
+class CodeGenerationRequest(BaseModel):
+    prompt: str
+    language: str
+    context: Optional[str] = None
+    max_tokens: int = 1000
+
+
+class DebugRequest(BaseModel):
+    code: str
+    language: str
+    error_message: Optional[str] = None
+
+
+class SecurityScanRequest(BaseModel):
+    code: str
+    language: str
+    file_path: Optional[str] = None
+
+
+# Authentication models
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: Optional[str]
+    is_active: bool
+    created_at: datetime
+
+
+class CodeGenerationResponse(BaseModel):
+    code: str
+    explanation: str
+    optimization_tips: List[str]
+    documentation: str
+
+
+class DebugResponse(BaseModel):
+    suggestions: List[Dict[str, Any]]
+    explanations: List[str]
+    fixed_code: Optional[str]
+
+
+class SecurityResponse(BaseModel):
+    vulnerabilities: List[Dict[str, Any]]
+    severity_levels: Dict[str, int]
+    recommendations: List[str]
+
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
+
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    return {
+        "status": "online",
+        "service": "Smart DevCopilot API",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+# Authentication endpoints
+@app.post("/api/auth/register", response_model=UserResponse)
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user"""
+    # Check if user already exists
+    existing_user = db.query(User).filter(
+        (User.username == user.username) | (User.email == user.email)
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Username or email already registered"
+        )
+    
+    # Create new user
+    hashed_password = get_password_hash(user.password)
+    db_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        full_name=user.full_name
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    return db_user
+
+
+@app.post("/api/auth/login", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """Login and get access token"""
+    # Find user
+    user = db.query(User).filter(User.username == form_data.username).first()
+    
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    
+    # Create access token
+    access_token = create_access_token(
+        data={
+            "sub": user.username,
+            "user_id": user.id,
+            "email": user.email
+        }
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get current user information"""
+    user = db.query(User).filter(User.username == current_user["username"]).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return user
+
+
+@app.post("/api/generate", response_model=CodeGenerationResponse)
+async def generate_code(request: CodeGenerationRequest, current_user: Optional[dict] = Depends(optional_auth)):
+    """
+    Generate code from natural language description
+    Example: "Build a REST API for customer data"
+    """
+    try:
+        # Generate code using AI model
+        result = await code_generator.generate(
+            prompt=request.prompt,
+            language=request.language,
+            context=request.context,
+            max_tokens=request.max_tokens
+        )
+        
+        # Store in vector database for semantic search
+        await vector_store.store_snippet(
+            code=result["code"],
+            description=request.prompt,
+            language=request.language
+        )
+        
+        return CodeGenerationResponse(
+            code=result["code"],
+            explanation=result["explanation"],
+            optimization_tips=result["optimization_tips"],
+            documentation=result["documentation"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code generation failed: {str(e)}")
+
+
+@app.post("/api/debug", response_model=DebugResponse)
+async def debug_code(request: DebugRequest):
+    """
+    Analyze code and provide debugging suggestions with explanations
+    """
+    try:
+        analysis = await debug_analyzer.analyze(
+            code=request.code,
+            language=request.language,
+            error_message=request.error_message
+        )
+        
+        return DebugResponse(
+            suggestions=analysis["suggestions"],
+            explanations=analysis["explanations"],
+            fixed_code=analysis.get("fixed_code")
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Debug analysis failed: {str(e)}")
+
+
+@app.post("/api/security-scan", response_model=SecurityResponse)
+async def scan_security(request: SecurityScanRequest):
+    """
+    Detect security vulnerabilities in code as you type
+    """
+    try:
+        scan_results = await security_scanner.scan(
+            code=request.code,
+            language=request.language,
+            file_path=request.file_path
+        )
+        
+        return SecurityResponse(
+            vulnerabilities=scan_results["vulnerabilities"],
+            severity_levels=scan_results["severity_levels"],
+            recommendations=scan_results["recommendations"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Security scan failed: {str(e)}")
+
+
+@app.get("/api/semantic-search")
+async def semantic_search(query: str, language: Optional[str] = None, limit: int = 5):
+    """
+    Search code snippets using semantic similarity
+    """
+    try:
+        results = await vector_store.search(
+            query=query,
+            language=language,
+            limit=limit
+        )
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@app.websocket("/ws/realtime")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time code assistance
+    """
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            action = message.get("action")
+            
+            if action == "generate":
+                result = await code_generator.generate(
+                    prompt=message["prompt"],
+                    language=message["language"],
+                    context=message.get("context")
+                )
+                await manager.send_personal_message(
+                    json.dumps({"type": "generation", "data": result}),
+                    websocket
+                )
+            
+            elif action == "debug":
+                analysis = await debug_analyzer.analyze(
+                    code=message["code"],
+                    language=message["language"],
+                    error_message=message.get("error_message")
+                )
+                await manager.send_personal_message(
+                    json.dumps({"type": "debug", "data": analysis}),
+                    websocket
+                )
+            
+            elif action == "security":
+                scan = await security_scanner.scan(
+                    code=message["code"],
+                    language=message["language"]
+                )
+                await manager.send_personal_message(
+                    json.dumps({"type": "security", "data": scan}),
+                    websocket
+                )
+                
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        manager.disconnect(websocket)
+
+
+@app.get("/api/languages")
+async def get_supported_languages():
+    """
+    Get list of supported programming languages
+    """
+    return {
+        "languages": [
+            "python",
+            "javascript",
+            "typescript",
+            "java",
+            "csharp",
+            "go",
+            "rust",
+            "cpp",
+            "ruby",
+            "php",
+            "swift",
+            "kotlin"
+        ]
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

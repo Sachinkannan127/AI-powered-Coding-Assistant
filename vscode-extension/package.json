@@ -1,0 +1,112 @@
+{
+  "name": "smart-devcopilot",
+  "displayName": "Smart DevCopilot",
+  "description": "AI-Powered Coding Assistant with real-time code generation, debugging, and security scanning",
+  "version": "1.0.0",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Linters",
+    "Snippets"
+  ],
+  "keywords": [
+    "ai",
+    "code-generation",
+    "debugging",
+    "security",
+    "assistant"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "smartDevCopilot.generateCode",
+        "title": "Smart DevCopilot: Generate Code from Description"
+      },
+      {
+        "command": "smartDevCopilot.debugCode",
+        "title": "Smart DevCopilot: Debug Current Code"
+      },
+      {
+        "command": "smartDevCopilot.scanSecurity",
+        "title": "Smart DevCopilot: Scan for Security Vulnerabilities"
+      },
+      {
+        "command": "smartDevCopilot.explainCode",
+        "title": "Smart DevCopilot: Explain Selected Code"
+      },
+      {
+        "command": "smartDevCopilot.optimizeCode",
+        "title": "Smart DevCopilot: Suggest Optimizations"
+      },
+      {
+        "command": "smartDevCopilot.createPR",
+        "title": "Smart DevCopilot: Create GitHub Pull Request"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "smartDevCopilot.generateCode",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      },
+      {
+        "command": "smartDevCopilot.debugCode",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d"
+      }
+    ],
+    "configuration": {
+      "title": "Smart DevCopilot",
+      "properties": {
+        "smartDevCopilot.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Backend API URL"
+        },
+        "smartDevCopilot.enableRealTime": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time suggestions via WebSocket"
+        },
+        "smartDevCopilot.autoScan": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically scan for security vulnerabilities on save"
+        },
+        "smartDevCopilot.preferredLanguages": {
+          "type": "array",
+          "default": ["python", "javascript", "typescript"],
+          "description": "Preferred programming languages"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.40.0",
+    "typescript": "^5.1.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "ws": "^8.14.0"
+  }
+}
