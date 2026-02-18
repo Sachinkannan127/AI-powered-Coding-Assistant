@@ -47,7 +47,37 @@ npm run preview
 
 ## Configuration
 
-The frontend connects to the backend API at `http://localhost:8000` by default. This is configured in `vite.config.ts`:
+### Environment Variables
+
+Create a `.env` file in the frontend directory (use `.env.example` as template):
+
+```bash
+# Copy example file
+cp .env.example .env
+```
+
+**Environment Variables:**
+- `VITE_API_BASE_URL` - Backend API URL (default: `http://localhost:8000`)
+
+**Development:**
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+**Production (.env.production):**
+```env
+VITE_API_BASE_URL=https://your-backend-api.com
+```
+
+The frontend connects to the backend API using the environment variable. This is configured in `src/services/api.ts`:
+
+```typescript
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+```
+
+### Vite Proxy (Development Only)
+
+For local development, Vite proxy is configured in `vite.config.ts`:
 
 ```typescript
 server: {
@@ -58,10 +88,59 @@ server: {
       changeOrigin: true,
     }
   }
+```
 }
 ```
 
-To change the backend URL, modify the `API_BASE_URL` in `src/services/api.ts`.
+## Deployment
+
+### Deploy to Vercel
+
+**Option 1: Via Vercel Dashboard**
+
+1. Push your code to GitHub/GitLab/Bitbucket
+2. Go to [vercel.com](https://vercel.com) and sign in
+3. Click **"Add New Project"**
+4. Import your repository
+5. Configure:
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+6. Add Environment Variable:
+   - `VITE_API_BASE_URL` = `https://your-backend-api.com`
+7. Click **Deploy**
+
+**Option 2: Via Vercel CLI**
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Navigate to frontend folder
+cd frontend
+
+# Login to Vercel
+vercel login
+
+# Deploy (follow prompts)
+vercel
+
+# Deploy to production
+vercel --prod
+```
+
+**Important:** Update the `.env.production` file with your production backend URL before deploying.
+
+### Other Platforms
+
+The app can be deployed to any static hosting platform:
+- **Netlify**: Drag & drop `dist` folder or connect Git
+- **GitHub Pages**: Use `vite-plugin-pages`
+- **AWS S3 + CloudFront**: Upload `dist` folder
+- **Firebase Hosting**: Use Firebase CLI
+
+Always set `VITE_API_BASE_URL` environment variable to your production backend URL.
 
 ## Usage
 

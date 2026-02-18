@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { FaShieldAlt, FaSpinner, FaExclamationTriangle } from 'react-icons/fa'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import apiService, { SecurityScanResponse, SecurityIssue } from '../services/api'
 
 const LANGUAGES = [
