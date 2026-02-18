@@ -6,6 +6,14 @@ Using FAISS for local deployment or Pinecone for cloud
 import os
 from typing import List, Dict, Any, Optional
 import numpy as np
+
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    print("Warning: faiss not installed. Using fallback mode.")
+
 try:
     from sentence_transformers import SentenceTransformer
     SENTENCE_TRANSFORMERS_AVAILABLE = True
@@ -13,6 +21,7 @@ except ImportError:
     SENTENCE_TRANSFORMERS_AVAILABLE = False
     print("Warning: sentence-transformers not installed. Semantic search disabled.")
     print("Install with: pip install sentence-transformers")
+
 import json
 import pickle
 
@@ -25,6 +34,7 @@ class VectorStore:
     def __init__(self, use_pinecone: bool = False):
         self.use_pinecone = use_pinecone
         self.enabled = SENTENCE_TRANSFORMERS_AVAILABLE
+        self.index = None
         
         if not self.enabled:
             print("VectorStore disabled - sentence-transformers not available")
@@ -37,7 +47,12 @@ class VectorStore:
         if use_pinecone:
             self._init_pinecone()
         else:
-            self._init_faiss()
+            if FAISS_AVAILABLE:
+                self._init_faiss()
+            else:
+                print("FAISS not available, vector search limited")
+                self.enabled = False
+                return
         
         # Storage for metadata
         self.metadata_store = []
@@ -46,6 +61,9 @@ class VectorStore:
     
     def _init_faiss(self):
         """Initialize FAISS index for local vector search"""
+        if not FAISS_AVAILABLE:
+            return
+            
         self.index = faiss.IndexFlatL2(self.embedding_dim)
         self.index_file = "faiss_index.bin"
         
@@ -123,12 +141,13 @@ class VectorStore:
             self.index.upsert([(str(metadata["id"]), embedding.tolist(), metadata)])
         else:
             # Store in FAISS
-            self.index.add(np.array([embedding]))
-            self.metadata_store.append(metadata)
-            
-            # Save to disk
-            faiss.write_index(self.index, self.index_file)
-            self._save_metadata()
+            if FAISS_AVAILABLE and self.index is not None:
+                self.index.add(np.array([embedding]))
+                self.metadata_store.append(metadata)
+                
+                # Save to disk
+                faiss.write_index(self.index, self.index_file)
+                self._save_metadata()
         
         return str(metadata["id"])
     
