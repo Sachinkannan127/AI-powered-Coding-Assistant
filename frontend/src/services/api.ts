@@ -59,6 +59,7 @@ class ApiService {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
+      timeout: 30000, // 30 second timeout for mobile networks
       headers: {
         'Content-Type': 'application/json',
       },
@@ -71,6 +72,20 @@ class ApiService {
       }
       return config;
     });
+
+    // Add response interceptor for better error handling
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Request timeout. Please check your connection and try again.');
+        }
+        if (!error.response) {
+          throw new Error('Network error. Please check your internet connection.');
+        }
+        throw error;
+      }
+    );
   }
 
   setAuthToken(token: string | null) {
