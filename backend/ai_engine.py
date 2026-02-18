@@ -7,11 +7,11 @@ import os
 from typing import Dict, List, Optional, Any
 import asyncio
 try:
-    import google.generativeai as genai
+    from google import genai
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
-    print("Warning: google-generativeai not installed")
+    print("Warning: google-genai not installed")
 
 
 class CodeGenerator:
@@ -23,14 +23,15 @@ class CodeGenerator:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            # Configure Gemini API
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
-            print("✓ Using Gemini 2.5 Flash")
+            # Configure Gemini API with new SDK
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
+            print("✓ Using Gemini 2.0 Flash")
         else:
             print("ERROR: Gemini API key not configured")
             print("Set GEMINI_API_KEY in your .env file")
-            self.model = None
+            self.client = None
+            self.model_name = None
     
     async def generate(
         self, 
@@ -57,7 +58,7 @@ Include:
         
         user_prompt += f"\nGenerate {language} code for this request."
         
-        if not self.model:
+        if not self.client:
             return {
                 "code": "# Error: Gemini API not configured",
                 "explanation": "Please set GEMINI_API_KEY in your .env file",
@@ -73,10 +74,11 @@ Include:
         # Combine system and user prompts for Gemini
         full_prompt = f"{system_prompt}\n\n{user_prompt}"
         
-        # Generate response using Gemini
+        # Generate response using new Gemini SDK
         response = await asyncio.to_thread(
-            self.model.generate_content,
-            full_prompt
+            self.client.models.generate_content,
+            model=self.model_name,
+            contents=full_prompt
         )
         
         # Parse response to extract code, explanation, tips, and docs
@@ -158,10 +160,11 @@ class DebugAnalyzer:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
     
     async def analyze(
         self, 
@@ -186,7 +189,7 @@ Analyze the code and provide:
         
         user_prompt += "\nProvide debugging analysis and suggestions."
         
-        if not self.model:
+        if not self.client:
             return {
                 "suggestions": [{"issue": "Gemini not configured", "line": 0, "severity": "error", "description": "Set GEMINI_API_KEY"}],
                 "explanations": ["API key required"],
@@ -194,7 +197,11 @@ Analyze the code and provide:
             }
         
         full_prompt = f"{system_prompt}\n\n{user_prompt}"
-        response = await asyncio.to_thread(self.model.generate_content, full_prompt)
+        response = await asyncio.to_thread(
+            self.client.models.generate_content,
+            model=self.model_name,
+            contents=full_prompt
+        )
         content = response.text
         
         # Extract fixed code if present
@@ -245,10 +252,11 @@ class SecurityScanner:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
         
         # Common vulnerability patterns
         self.vulnerability_patterns = {
@@ -306,10 +314,10 @@ Format as bullet points with clear structure.
         
         user_prompt = f"Analyze this {language} code for security issues:\n```{language}\n{code}\n```"
         
-        if self.model:
+        if self.client:
             try:
                 full_prompt = f"{system_prompt}\n\n{user_prompt}"
-                response = await asyncio.to_thread(self.model.generate_content, full_prompt)
+                response = await asyncio.to_thread(self.client.models.generate_content, model=self.model_name, contents=full_prompt)
                 ai_analysis = response.text
                 
                 # Parse AI analysis for additional issues
@@ -374,10 +382,11 @@ class CodeReviewer:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
     
     async def review(self, code: str, language: str, context: Optional[str] = None) -> Dict[str, Any]:
         """Perform comprehensive code review"""
@@ -397,7 +406,7 @@ Provide specific, actionable feedback with examples."""
         if context:
             user_prompt += f"\n\nContext: {context}"
         
-        if not self.model:
+        if not self.client:
             return {
                 "overall_score": 0,
                 "issues": [],
@@ -408,7 +417,7 @@ Provide specific, actionable feedback with examples."""
         
         try:
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = await asyncio.to_thread(self.model.generate_content, full_prompt)
+            response = await asyncio.to_thread(self.client.models.generate_content, model=self.model_name, contents=full_prompt)
             content = response.text
             
             # Parse review content
@@ -493,10 +502,11 @@ class CodeRefactorer:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
     
     async def refactor(self, code: str, language: str, refactor_type: str = "general") -> Dict[str, Any]:
         """Refactor code for better quality"""
@@ -519,7 +529,7 @@ Provide:
 
         user_prompt = f"Refactor this {language} code:\n```{language}\n{code}\n```"
         
-        if not self.model:
+        if not self.client:
             return {
                 "refactored_code": code,
                 "changes": ["Configure Gemini API to use refactoring"],
@@ -529,7 +539,7 @@ Provide:
         
         try:
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = await asyncio.to_thread(self.model.generate_content, full_prompt)
+            response = await asyncio.to_thread(self.client.models.generate_content, model=self.model_name, contents=full_prompt)
             content = response.text
             
             # Extract refactored code
@@ -589,10 +599,11 @@ class TestGenerator:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
     
     async def generate_tests(self, code: str, language: str, test_framework: Optional[str] = None) -> Dict[str, Any]:
         """Generate comprehensive test cases for code"""
@@ -621,7 +632,7 @@ Follow {test_framework} best practices and conventions."""
 
         user_prompt = f"Generate tests for this {language} code:\n```{language}\n{code}\n```"
         
-        if not self.model:
+        if not self.client:
             return {
                 "test_code": f"# Configure Gemini API to generate tests",
                 "test_cases": [],
@@ -631,7 +642,7 @@ Follow {test_framework} best practices and conventions."""
         
         try:
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = await asyncio.to_thread(self.model.generate_content, full_prompt)
+            response = await asyncio.to_thread(self.client.models.generate_content, model=self.model_name, contents=full_prompt)
             content = response.text
             
             # Extract test code
@@ -694,10 +705,11 @@ class PerformanceOptimizer:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
     
     async def optimize(self, code: str, language: str, context: Optional[str] = None) -> Dict[str, Any]:
         """Analyze and optimize code for performance"""
@@ -716,7 +728,7 @@ Analyze the code and provide:
         if context:
             user_prompt += f"\n\nContext: {context}"
         
-        if not self.model:
+        if not self.client:
             return {
                 "optimized_code": code,
                 "bottlenecks": ["Configure Gemini API"],
@@ -727,7 +739,7 @@ Analyze the code and provide:
         
         try:
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = await asyncio.to_thread(self.model.generate_content, full_prompt)
+            response = await asyncio.to_thread(self.client.models.generate_content, model=self.model_name, contents=full_prompt)
             content = response.text
             
             # Extract optimized code
@@ -801,10 +813,11 @@ class DocumentationGenerator:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
     
     async def generate_docs(self, code: str, language: str, doc_type: str = "comprehensive") -> Dict[str, Any]:
         """Generate comprehensive documentation for code"""
@@ -831,7 +844,7 @@ Follow {language} documentation conventions (JSDoc, docstrings, JavaDoc, etc.)."
 
         user_prompt = f"Generate documentation for this {language} code:\n```{language}\n{code}\n```"
         
-        if not self.model:
+        if not self.client:
             return {
                 "documentation": "# Configure Gemini API to generate documentation",
                 "inline_comments": code,
@@ -840,7 +853,7 @@ Follow {language} documentation conventions (JSDoc, docstrings, JavaDoc, etc.)."
         
         try:
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = await asyncio.to_thread(self.model.generate_content, full_prompt)
+            response = await asyncio.to_thread(self.client.models.generate_content, model=self.model_name, contents=full_prompt)
             content = response.text
             
             # Extract documented code if present
@@ -890,12 +903,13 @@ class AIAssistant:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         
         if GEMINI_AVAILABLE and self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
-            print("✓ AI Assistant initialized with Gemini 2.5 Flash")
+            self.client = genai.Client(api_key=self.gemini_api_key)
+            self.model_name = 'gemini-2.0-flash-exp'
+            print("✓ AI Assistant initialized with Gemini 2.0 Flash")
         else:
             print("ERROR: Gemini API key not configured for AI Assistant")
-            self.model = None
+            self.client = None
+            self.model_name = None
         
         # Conversation history for context
         self.conversation_history: List[Dict[str, str]] = []
@@ -956,8 +970,9 @@ Format your responses with markdown for better readability."""
             
             # Generate response
             response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt,
+                self.client.models.generate_content,
+                model=self.model_name,
+                contents=prompt,
                 generation_config={
                     "temperature": 0.7,
                     "top_p": 0.95,

@@ -6,8 +6,8 @@ uvicorn[standard]==0.24.0
 websockets==12.0
 python-multipart==0.0.6
 
-# AI/ML Libraries - Google Gemini
-google-generativeai>=0.3.0
+# AI/ML Libraries - Google Gemini (new package)
+google-genai>=0.2.0
 
 # AI/ML Libraries - Required for vector search
 numpy==1.24.3
