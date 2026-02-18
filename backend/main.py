@@ -24,7 +24,8 @@ from ai_engine import (
     CodeRefactorer,
     TestGenerator,
     PerformanceOptimizer,
-    DocumentationGenerator
+    DocumentationGenerator,
+    AIAssistant
 )
 from database import SessionLocal, get_db, User
 from models import CodeSnippet, UserPreference
@@ -62,6 +63,7 @@ code_refactorer = CodeRefactorer()
 test_generator = TestGenerator()
 performance_optimizer = PerformanceOptimizer()
 documentation_generator = DocumentationGenerator()
+ai_assistant = AIAssistant()
 
 
 # Pydantic models
@@ -112,6 +114,12 @@ class DocumentationRequest(BaseModel):
     code: str
     language: str
     doc_type: str = "comprehensive"  # comprehensive, inline, api, readme, tutorial
+
+
+class ChatRequest(BaseModel):
+    message: str
+    context: Optional[Dict[str, Any]] = None
+    conversation_id: Optional[str] = None
 
 
 # Authentication models
@@ -493,6 +501,34 @@ async def generate_documentation(request: DocumentationRequest):
         return docs_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Documentation generation failed: {str(e)}")
+
+
+@app.post("/api/chat")
+async def chat_with_assistant(request: ChatRequest):
+    """
+    Chat with AI coding assistant
+    """
+    try:
+        response = await ai_assistant.chat(
+            message=request.message,
+            context=request.context,
+            conversation_id=request.conversation_id
+        )
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+
+@app.post("/api/chat/clear")
+async def clear_chat_history():
+    """
+    Clear conversation history
+    """
+    try:
+        ai_assistant.clear_history()
+        return {"message": "Conversation history cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear history: {str(e)}")
 
 
 @app.get("/api/languages")

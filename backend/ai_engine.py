@@ -878,3 +878,176 @@ Follow {language} documentation conventions (JSDoc, docstrings, JavaDoc, etc.)."
                 if i % 2 == 1:  # Odd indices are code blocks
                     examples.append(block.strip())
         return examples[:5]
+
+
+class AIAssistant:
+    """
+    Conversational AI Assistant for coding help and guidance
+    Provides context-aware responses about programming, debugging, and best practices
+    """
+    
+    def __init__(self):
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
+        
+        if GEMINI_AVAILABLE and self.gemini_api_key:
+            genai.configure(api_key=self.gemini_api_key)
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            print("✓ AI Assistant initialized with Gemini 2.5 Flash")
+        else:
+            print("ERROR: Gemini API key not configured for AI Assistant")
+            self.model = None
+        
+        # Conversation history for context
+        self.conversation_history: List[Dict[str, str]] = []
+    
+    async def chat(
+        self, 
+        message: str, 
+        context: Optional[Dict[str, Any]] = None,
+        conversation_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Chat with the AI assistant
+        
+        Args:
+            message: User's message/question
+            context: Optional context (code snippets, language, etc.)
+            conversation_id: Optional ID to maintain conversation history
+        
+        Returns:
+            Dict containing AI response and metadata
+        """
+        if not self.model:
+            return {
+                "response": "AI Assistant is not available. Please configure GEMINI_API_KEY.",
+                "suggestions": [],
+                "code_examples": [],
+                "references": []
+            }
+        
+        try:
+            # Build system context
+            system_context = """You are an expert AI coding assistant integrated into a development environment.
+You help developers with:
+- Writing and explaining code in any programming language
+- Debugging and troubleshooting issues
+- Best practices and design patterns
+- Performance optimization
+- Security recommendations
+- Code review feedback
+- Learning programming concepts
+
+Provide clear, practical, and actionable responses. Include code examples when relevant.
+Format your responses with markdown for better readability."""
+
+            # Add user context if provided
+            if context:
+                context_str = "\n\nCurrent Context:\n"
+                if context.get("language"):
+                    context_str += f"- Language: {context['language']}\n"
+                if context.get("code"):
+                    context_str += f"- Code Snippet:\n```{context.get('language', '')}\n{context['code']}\n```\n"
+                if context.get("file_type"):
+                    context_str += f"- File Type: {context['file_type']}\n"
+                system_context += context_str
+            
+            # Build conversation prompt
+            prompt = f"{system_context}\n\nUser: {message}\n\nAssistant:"
+            
+            # Generate response
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "max_output_tokens": 2048,
+                }
+            )
+            
+            content = response.text.strip()
+            
+            # Extract code examples
+            code_examples = self._extract_code_blocks(content)
+            
+            # Extract suggestions
+            suggestions = self._extract_suggestions(content)
+            
+            # Add to conversation history
+            self.conversation_history.append({
+                "role": "user",
+                "content": message,
+                "timestamp": datetime.now().isoformat()
+            })
+            self.conversation_history.append({
+                "role": "assistant",
+                "content": content,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # Keep only last 10 messages
+            if len(self.conversation_history) > 10:
+                self.conversation_history = self.conversation_history[-10:]
+            
+            return {
+                "response": content,
+                "suggestions": suggestions,
+                "code_examples": code_examples,
+                "references": self._extract_references(content),
+                "conversation_id": conversation_id or "default"
+            }
+            
+        except Exception as e:
+            return {
+                "response": f"I encountered an error: {str(e)}. Please try rephrasing your question.",
+                "suggestions": ["Try asking a more specific question", "Check your API configuration"],
+                "code_examples": [],
+                "references": []
+            }
+    
+    def _extract_code_blocks(self, content: str) -> List[Dict[str, str]]:
+        """Extract code blocks from markdown"""
+        code_blocks = []
+        if "```" in content:
+            blocks = content.split("```")
+            for i, block in enumerate(blocks):
+                if i % 2 == 1:  # Odd indices are code blocks
+                    lines = block.strip().split("\n", 1)
+                    language = lines[0].strip() if lines else ""
+                    code = lines[1] if len(lines) > 1 else block.strip()
+                    code_blocks.append({
+                        "language": language,
+                        "code": code.strip()
+                    })
+        return code_blocks
+    
+    def _extract_suggestions(self, content: str) -> List[str]:
+        """Extract actionable suggestions from response"""
+        suggestions = []
+        lines = content.split("\n")
+        for line in lines:
+            # Look for bullet points or numbered lists
+            stripped = line.strip()
+            if stripped.startswith(("- ", "* ", "• ")) or (len(stripped) > 2 and stripped[0].isdigit() and stripped[1] in ".):"):
+                # Remove the bullet/number
+                suggestion = stripped.lstrip("-*•0123456789.): ").strip()
+                if suggestion and len(suggestion) > 10:  # Filter out very short items
+                    suggestions.append(suggestion)
+        return suggestions[:5]  # Return top 5
+    
+    def _extract_references(self, content: str) -> List[str]:
+        """Extract reference links or documentation mentions"""
+        references = []
+        # Look for common documentation patterns
+        keywords = ["documentation", "docs", "reference", "learn more", "see also", "read about"]
+        lines = content.split("\n")
+        for line in lines:
+            lower_line = line.lower()
+            if any(keyword in lower_line for keyword in keywords):
+                references.append(line.strip())
+        return references[:3]
+    
+    def clear_history(self):
+        """Clear conversation history"""
+        self.conversation_history = []

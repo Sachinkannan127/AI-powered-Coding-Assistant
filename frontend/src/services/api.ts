@@ -183,6 +183,20 @@ class ApiService {
     return response.data;
   }
 
+  async chatWithAssistant(message: string, context?: any, conversation_id?: string): Promise<any> {
+    const response = await this.axiosInstance.post('/api/chat', {
+      message,
+      context,
+      conversation_id
+    });
+    return response.data;
+  }
+
+  async clearChatHistory(): Promise<any> {
+    const response = await this.axiosInstance.post('/api/chat/clear');
+    return response.data;
+  }
+
   async getStatus(): Promise<any> {
     const response = await this.axiosInstance.get('/');
     return response.data;
@@ -206,6 +220,8 @@ export const refactorCode = apiService.refactorCode.bind(apiService);
 export const generateTests = apiService.generateTests.bind(apiService);
 export const optimizeCode = apiService.optimizeCode.bind(apiService);
 export const generateDocumentation = apiService.generateDocumentation.bind(apiService);
+export const chatWithAssistant = apiService.chatWithAssistant.bind(apiService);
+export const clearChatHistory = apiService.clearChatHistory.bind(apiService);
 export const getStatus = apiService.getStatus.bind(apiService);
 export const setAuthToken = apiService.setAuthToken.bind(apiService);
 

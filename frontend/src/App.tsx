@@ -154,6 +154,9 @@ function App() {
             <p className="text-center text-slate-400 text-sm">
               Powered by Google Gemini AI • Smart DevCopilot v1.0.0
             </p>
+            <p className="text-center text-slate-500 text-xs mt-2">
+              Created by Sachuu_.ags
+            </p>
           </div>
         </footer>
 
@@ -325,6 +328,9 @@ function App() {
         <div className="container mx-auto px-4 py-6">
           <p className="text-center text-slate-400 text-sm">
             Powered by Google Gemini AI • Smart DevCopilot v1.0.0 • Logged in as {user?.username}
+          </p>
+          <p className="text-center text-slate-500 text-xs mt-2">
+            Created by Sachuu_.ags
           </p>
         </div>
       </footer>
