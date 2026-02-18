@@ -37,20 +37,31 @@ function AuthModal({ onClose }: AuthModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <div className="bg-slate-800 rounded-lg p-8 max-w-md w-full mx-4 border border-slate-700 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">
-            {isLogin ? 'Sign In' : 'Create Account'}
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold gradient-text mb-2">
+            {isLogin ? 'Welcome Back!' : 'Join Smart DevCopilot'}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            ✕
-          </button>
+          <p className="text-slate-400 text-sm">
+            {isLogin 
+              ? 'Sign in to access your AI coding assistant' 
+              : 'Create an account to get started with AI-powered development'}
+          </p>
         </div>
+
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-2xl"
+        >
+          ✕
+        </button>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -161,6 +172,10 @@ function AuthModal({ onClose }: AuthModalProps) {
             onClick={() => {
               setIsLogin(!isLogin)
               setError(null)
+              setUsername('')
+              setEmail('')
+              setPassword('')
+              setFullName('')
             }}
             className="text-primary-400 hover:text-primary-300 text-sm"
           >
@@ -169,6 +184,15 @@ function AuthModal({ onClose }: AuthModalProps) {
               : 'Already have an account? Sign in'}
           </button>
         </div>
+
+        {/* Info Section */}
+        {!isLogin && (
+          <div className="mt-4 pt-4 border-t border-slate-700">
+            <p className="text-xs text-slate-400 text-center">
+              🚀 Get instant access to 9 AI-powered features: Code Generation, Review, Debug, Security, Refactoring, Testing, Optimization, Documentation & Search!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -16,7 +16,16 @@ import asyncio
 import json
 from datetime import datetime
 
-from ai_engine import CodeGenerator, DebugAnalyzer, SecurityScanner
+from ai_engine import (
+    CodeGenerator, 
+    DebugAnalyzer, 
+    SecurityScanner,
+    CodeReviewer,
+    CodeRefactorer,
+    TestGenerator,
+    PerformanceOptimizer,
+    DocumentationGenerator
+)
 from database import SessionLocal, get_db, User
 from models import CodeSnippet, UserPreference
 from vector_search import VectorStore
@@ -48,6 +57,11 @@ code_generator = CodeGenerator()
 debug_analyzer = DebugAnalyzer()
 security_scanner = SecurityScanner()
 vector_store = VectorStore()
+code_reviewer = CodeReviewer()
+code_refactorer = CodeRefactorer()
+test_generator = TestGenerator()
+performance_optimizer = PerformanceOptimizer()
+documentation_generator = DocumentationGenerator()
 
 
 # Pydantic models
@@ -68,6 +82,36 @@ class SecurityScanRequest(BaseModel):
     code: str
     language: str
     file_path: Optional[str] = None
+
+
+class CodeReviewRequest(BaseModel):
+    code: str
+    language: str
+    context: Optional[str] = None
+
+
+class RefactorRequest(BaseModel):
+    code: str
+    language: str
+    refactor_type: str = "general"  # general, performance, clean_code, design_patterns, simplify
+
+
+class TestGenerationRequest(BaseModel):
+    code: str
+    language: str
+    test_framework: Optional[str] = None
+
+
+class OptimizationRequest(BaseModel):
+    code: str
+    language: str
+    context: Optional[str] = None
+
+
+class DocumentationRequest(BaseModel):
+    code: str
+    language: str
+    doc_type: str = "comprehensive"  # comprehensive, inline, api, readme, tutorial
 
 
 # Authentication models
@@ -105,14 +149,23 @@ class CodeGenerationResponse(BaseModel):
 
 
 class DebugResponse(BaseModel):
-    suggestions: List[Dict[str, Any]]
-    explanations: List[str]
+    analysis: str
+    suggestions: List[str]
     fixed_code: Optional[str]
+    severity: str
+
+
+class SecurityIssue(BaseModel):
+    type: str
+    severity: str
+    line: int
+    description: str
+    recommendation: str
 
 
 class SecurityResponse(BaseModel):
-    vulnerabilities: List[Dict[str, Any]]
-    severity_levels: Dict[str, int]
+    issues: List[SecurityIssue]
+    overall_risk: str
     recommendations: List[str]
 
 
@@ -265,9 +318,10 @@ async def debug_code(request: DebugRequest):
         )
         
         return DebugResponse(
+            analysis=analysis["analysis"],
             suggestions=analysis["suggestions"],
-            explanations=analysis["explanations"],
-            fixed_code=analysis.get("fixed_code")
+            fixed_code=analysis.get("fixed_code"),
+            severity=analysis["severity"]
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Debug analysis failed: {str(e)}")
@@ -286,8 +340,8 @@ async def scan_security(request: SecurityScanRequest):
         )
         
         return SecurityResponse(
-            vulnerabilities=scan_results["vulnerabilities"],
-            severity_levels=scan_results["severity_levels"],
+            issues=scan_results["issues"],
+            overall_risk=scan_results["overall_risk"],
             recommendations=scan_results["recommendations"]
         )
     except Exception as e:
@@ -359,6 +413,86 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"WebSocket error: {e}")
     finally:
         manager.disconnect(websocket)
+
+
+@app.post("/api/review")
+async def review_code(request: CodeReviewRequest):
+    """
+    AI-powered code review with best practices and suggestions
+    """
+    try:
+        review_result = await code_reviewer.review(
+            code=request.code,
+            language=request.language,
+            context=request.context
+        )
+        return review_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code review failed: {str(e)}")
+
+
+@app.post("/api/refactor")
+async def refactor_code(request: RefactorRequest):
+    """
+    AI-powered code refactoring for better quality and maintainability
+    """
+    try:
+        refactor_result = await code_refactorer.refactor(
+            code=request.code,
+            language=request.language,
+            refactor_type=request.refactor_type
+        )
+        return refactor_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code refactoring failed: {str(e)}")
+
+
+@app.post("/api/generate-tests")
+async def generate_tests(request: TestGenerationRequest):
+    """
+    AI-powered test case generation with comprehensive coverage
+    """
+    try:
+        test_result = await test_generator.generate_tests(
+            code=request.code,
+            language=request.language,
+            test_framework=request.test_framework
+        )
+        return test_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Test generation failed: {str(e)}")
+
+
+@app.post("/api/optimize")
+async def optimize_code(request: OptimizationRequest):
+    """
+    AI-powered performance optimization and analysis
+    """
+    try:
+        optimization_result = await performance_optimizer.optimize(
+            code=request.code,
+            language=request.language,
+            context=request.context
+        )
+        return optimization_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Performance optimization failed: {str(e)}")
+
+
+@app.post("/api/generate-docs")
+async def generate_documentation(request: DocumentationRequest):
+    """
+    AI-powered documentation generation
+    """
+    try:
+        docs_result = await documentation_generator.generate_docs(
+            code=request.code,
+            language=request.language,
+            doc_type=request.doc_type
+        )
+        return docs_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Documentation generation failed: {str(e)}")
 
 
 @app.get("/api/languages")

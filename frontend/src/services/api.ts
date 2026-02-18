@@ -138,10 +138,74 @@ class ApiService {
     return response.data;
   }
 
+  async reviewCode(code: string, language: string, context?: string): Promise<any> {
+    const response = await this.axiosInstance.post('/api/review', {
+      code,
+      language,
+      context
+    });
+    return response.data;
+  }
+
+  async refactorCode(code: string, language: string, refactor_type: string = 'general'): Promise<any> {
+    const response = await this.axiosInstance.post('/api/refactor', {
+      code,
+      language,
+      refactor_type
+    });
+    return response.data;
+  }
+
+  async generateTests(code: string, language: string, test_framework?: string): Promise<any> {
+    const response = await this.axiosInstance.post('/api/generate-tests', {
+      code,
+      language,
+      test_framework
+    });
+    return response.data;
+  }
+
+  async optimizeCode(code: string, language: string, context?: string): Promise<any> {
+    const response = await this.axiosInstance.post('/api/optimize', {
+      code,
+      language,
+      context
+    });
+    return response.data;
+  }
+
+  async generateDocumentation(code: string, language: string, doc_type: string = 'comprehensive'): Promise<any> {
+    const response = await this.axiosInstance.post('/api/generate-docs', {
+      code,
+      language,
+      doc_type
+    });
+    return response.data;
+  }
+
   async getStatus(): Promise<any> {
     const response = await this.axiosInstance.get('/');
     return response.data;
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+
+export default apiService;
+
+// Export individual methods as bound functions for easier importing
+export const register = apiService.register.bind(apiService);
+export const login = apiService.login.bind(apiService);
+export const getCurrentUser = apiService.getCurrentUser.bind(apiService);
+export const generateCode = apiService.generateCode.bind(apiService);
+export const debugCode = apiService.debugCode.bind(apiService);
+export const scanSecurity = apiService.scanSecurity.bind(apiService);
+export const semanticSearch = apiService.semanticSearch.bind(apiService);
+export const reviewCode = apiService.reviewCode.bind(apiService);
+export const refactorCode = apiService.refactorCode.bind(apiService);
+export const generateTests = apiService.generateTests.bind(apiService);
+export const optimizeCode = apiService.optimizeCode.bind(apiService);
+export const generateDocumentation = apiService.generateDocumentation.bind(apiService);
+export const getStatus = apiService.getStatus.bind(apiService);
+export const setAuthToken = apiService.setAuthToken.bind(apiService);
+
