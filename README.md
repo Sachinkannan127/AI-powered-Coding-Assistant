@@ -57,7 +57,7 @@ Smart DevCopilot is an advanced AI-powered coding assistant that goes far beyond
 
 ### Backend
 - **FastAPI** - High-performance Python web framework
-- **Google Gemini API** - Advanced AI for code generation, debugging, and security analysis
+- **Poe API** - Advanced AI for code generation, debugging, and security analysis (access to Claude, GPT-4, and more)
 - **PostgreSQL** - Persistent storage
 - **FAISS / Pinecone** - Vector database for semantic search (optional)
 - **WebSockets** - Real-time bidirectional communication
@@ -90,7 +90,7 @@ Smart DevCopilot is an advanced AI-powered coding assistant that goes far beyond
 - Node.js 18+
 - Docker & Docker Compose (optional)
 - VS Code (for extension development)
-- Google Gemini API key (get from https://aistudio.google.com/)
+- Poe API key (get from https://poe.com/api_key)
 
 ### 1. Clone the Repository
 
@@ -113,7 +113,7 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
+# Edit .env and add your POE_API_KEY
 
 # Initialize database (optional - uses mock data if not configured)
 python database.py

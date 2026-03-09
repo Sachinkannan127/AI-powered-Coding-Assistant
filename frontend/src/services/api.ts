@@ -54,7 +54,6 @@ export interface SemanticSearchRequest {
 
 class ApiService {
   private axiosInstance;
-  private authToken: string | null = null;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -63,14 +62,6 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-
-    // Add request interceptor to include auth token
-    this.axiosInstance.interceptors.request.use((config) => {
-      if (this.authToken) {
-        config.headers.Authorization = `Bearer ${this.authToken}`;
-      }
-      return config;
     });
 
     // Add response interceptor for better error handling
@@ -86,39 +77,6 @@ class ApiService {
         throw error;
       }
     );
-  }
-
-  setAuthToken(token: string | null) {
-    this.authToken = token;
-  }
-
-  // Authentication methods
-  async register(username: string, email: string, password: string, fullName?: string) {
-    const response = await this.axiosInstance.post('/api/auth/register', {
-      username,
-      email,
-      password,
-      full_name: fullName
-    });
-    return response.data;
-  }
-
-  async login(username: string, password: string) {
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    const response = await this.axiosInstance.post('/api/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    return response.data;
-  }
-
-  async getCurrentUser() {
-    const response = await this.axiosInstance.get('/api/auth/me');
-    return response.data;
   }
 
   async generateCode(request: CodeGenerationRequest): Promise<CodeGenerationResponse> {
@@ -223,9 +181,6 @@ const apiService = new ApiService();
 export default apiService;
 
 // Export individual methods as bound functions for easier importing
-export const register = apiService.register.bind(apiService);
-export const login = apiService.login.bind(apiService);
-export const getCurrentUser = apiService.getCurrentUser.bind(apiService);
 export const generateCode = apiService.generateCode.bind(apiService);
 export const debugCode = apiService.debugCode.bind(apiService);
 export const scanSecurity = apiService.scanSecurity.bind(apiService);
@@ -238,5 +193,3 @@ export const generateDocumentation = apiService.generateDocumentation.bind(apiSe
 export const chatWithAssistant = apiService.chatWithAssistant.bind(apiService);
 export const clearChatHistory = apiService.clearChatHistory.bind(apiService);
 export const getStatus = apiService.getStatus.bind(apiService);
-export const setAuthToken = apiService.setAuthToken.bind(apiService);
-

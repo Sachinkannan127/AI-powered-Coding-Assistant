@@ -27,7 +27,7 @@
 Go to **Variables** tab and add:
 
 ```
-GEMINI_API_KEY=your-gemini-api-key-here
+POE_API_KEY=your-poe-api-key-here
 SECRET_KEY=your-secret-key-here
 DATABASE_URL=sqlite:///./devcopilot.db
 ALGORITHM=HS256

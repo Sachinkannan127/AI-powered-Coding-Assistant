@@ -276,8 +276,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 days
 # Database
 DATABASE_URL=sqlite:///./devcopilot.db
 
-# Gemini API
-GEMINI_API_KEY=your-gemini-api-key
+# Poe API
+POE_API_KEY=your-poe-api-key
 ```
 
 ### Generate a Secure Secret Key

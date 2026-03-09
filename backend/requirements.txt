@@ -6,11 +6,11 @@ uvicorn[standard]==0.24.0
 websockets==13.1
 python-multipart==0.0.6
 
-# AI/ML Libraries - Google Gemini (new package)
-google-genai>=0.2.0
+# AI/ML Libraries - Poe API
+# Note: Using httpx for direct API calls instead of poe-api package (compilation issues on Windows)
 
 # AI/ML Libraries - Required for vector search
-numpy==1.24.3
+numpy>=1.26.0
 
 # AI/ML Libraries - Optional (commented for faster deployment)
 # openai==1.3.0
@@ -20,11 +20,11 @@ numpy==1.24.3
 # sentence-transformers==2.2.2
 
 # Vector Databases - Optional
-faiss-cpu==1.7.4
+faiss-cpu>=1.9.0
 # pinecone-client==2.2.4
 
 # Database
-sqlalchemy==2.0.23
+sqlalchemy>=2.0.35
 # psycopg2-binary==2.9.9  # Uncomment if using PostgreSQL
 alembic==1.12.1
 
@@ -33,7 +33,7 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
 # Utilities
-pydantic==2.5.0
+pydantic>=2.10.0
 python-dotenv==1.0.0
 httpx==0.25.1
 aiofiles==23.2.1

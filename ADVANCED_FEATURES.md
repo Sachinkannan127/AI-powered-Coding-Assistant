@@ -1,7 +1,7 @@
 # Advanced AI Features - Smart DevCopilot
 
 ## Overview
-This document outlines the **5 new advanced AI features** added to the Smart DevCopilot AI-powered coding assistant. These features leverage Google Gemini AI to provide comprehensive code analysis, optimization, and automation capabilities.
+This document outlines the **5 new advanced AI features** added to the Smart DevCopilot AI-powered coding assistant. These features leverage Poe API to provide comprehensive code analysis, optimization, and automation capabilities.
 
 ---
 
@@ -242,7 +242,7 @@ const result = await reviewCode(code, language, context)
 ## 🔧 Technical Architecture
 
 ### Backend (Python)
-- **AI Engine:** Google Gemini 2.5 Flash
+- **AI Engine:** Poe API (Claude-3-Opus, GPT-4, and other models)
 - **Framework:** FastAPI
 - **Async Processing:** Python asyncio
 - **Error Handling:** Comprehensive try-catch with fallbacks
@@ -323,7 +323,7 @@ Potential additions for future versions:
 ### Environment Variables
 ```bash
 # Required
-GEMINI_API_KEY=your_gemini_api_key
+POE_API_KEY=your_poe_api_key
 
 # Optional
 MAX_TOKENS=2000
@@ -371,4 +371,4 @@ For issues or questions:
 
 **Version:** 2.0.0  
 **Last Updated:** February 18, 2026  
-**Powered by:** Google Gemini AI
+**Powered by:** Poe API
