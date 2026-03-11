@@ -174,6 +174,55 @@ class ApiService {
     const response = await this.axiosInstance.get('/');
     return response.data;
   }
+
+  // Authentication methods
+  setAuthToken(token: string | null) {
+    if (token) {
+      this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete this.axiosInstance.defaults.headers.common['Authorization'];
+    }
+  }
+
+  async login(username: string, password: string): Promise<any> {
+    const response = await this.axiosInstance.post('/api/auth/login', {
+      username,
+      password
+    });
+    return response.data;
+  }
+
+  async register(username: string, email: string, password: string, fullName?: string): Promise<any> {
+    const response = await this.axiosInstance.post('/api/auth/register', {
+      username,
+      email,
+      password,
+      full_name: fullName
+    });
+    return response.data;
+  }
+
+  async getCurrentUser(): Promise<any> {
+    const response = await this.axiosInstance.get('/api/auth/me');
+    return response.data;
+  }
+
+  async updateProfile(username: string, email: string, fullName?: string): Promise<any> {
+    const response = await this.axiosInstance.put('/api/auth/profile', {
+      username,
+      email,
+      full_name: fullName
+    });
+    return response.data;
+  }
+
+  async updatePassword(currentPassword: string, newPassword: string): Promise<any> {
+    const response = await this.axiosInstance.put('/api/auth/password', {
+      old_password: currentPassword,
+      new_password: newPassword
+    });
+    return response.data;
+  }
 }
 
 const apiService = new ApiService();
@@ -193,3 +242,11 @@ export const generateDocumentation = apiService.generateDocumentation.bind(apiSe
 export const chatWithAssistant = apiService.chatWithAssistant.bind(apiService);
 export const clearChatHistory = apiService.clearChatHistory.bind(apiService);
 export const getStatus = apiService.getStatus.bind(apiService);
+
+// Export authentication methods
+export const setAuthToken = apiService.setAuthToken.bind(apiService);
+export const login = apiService.login.bind(apiService);
+export const register = apiService.register.bind(apiService);
+export const getCurrentUser = apiService.getCurrentUser.bind(apiService);
+export const updateProfile = apiService.updateProfile.bind(apiService);
+export const updatePassword = apiService.updatePassword.bind(apiService);
